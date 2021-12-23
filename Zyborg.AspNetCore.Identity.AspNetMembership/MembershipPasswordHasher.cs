@@ -18,7 +18,12 @@ public class MembershipPasswordHasher : IPasswordHasher<MembershipUser>
 
     public PasswordVerificationResult VerifyHashedPassword(MembershipUser user, string hashedPassword, string providedPassword)
     {
-        var passparts = user.PasswordHash.Split(":", 2);
+        var passparts = user.PasswordHash?.Split(":", 2);
+        if (passparts == null || passparts.Length < 2)
+        {
+            return PasswordVerificationResult.Failed;
+        }
+
         var saltBytes = Convert.FromBase64String(passparts[0]);
         var hashedNew = HashSaltedPassword(saltBytes, providedPassword);
 
