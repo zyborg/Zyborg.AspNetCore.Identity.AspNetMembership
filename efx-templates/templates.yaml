@@ -1,0 +1,20 @@
+
+templateFormat: 100
+
+## Example of project-wide, shared output
+#perProject:
+#  - name: DataWorkspace.scriban-cs:
+#    path: ::SHARED::/DataWorkspace.cs
+
+perProfile:
+  - name:   DataContext.scriban-cs
+    path:   "{Data.Context.Name}.cs"
+    source: "{Options.ProfileParentPath}/efx-templates/templates/DataContext.scriban-cs"
+
+perEntity:
+  - name:   "Entity.scriban-cs"
+    path:   "entities/{Entity.Name}.cs"
+    source: "{Options.ProfileParentPath}/efx-templates/templates/Entity.scriban-cs"
+  - name:   "EntityMapping.scriban-cs"
+    path:   "entities/{Entity.Name}Mapping.cs"
+    source: "{Options.ProfileParentPath}/efx-templates/templates/EntityMapping.scriban-cs"

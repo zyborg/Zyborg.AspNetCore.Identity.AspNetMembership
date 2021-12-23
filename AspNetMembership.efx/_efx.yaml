@@ -1,0 +1,85 @@
+project:
+  #namespace: '{Database.Name}'
+  namespace: 'Zyborg.AspNetCore.Identity.AspNetMembership.Membership'
+  directory: '{Options.ProfileParentPath}/_efx/{Options.ProfileName}'
+  templates: '{Options.ProfileParentPath}/efx-templates/templates.yaml'
+database:
+  name: AspNetMembership
+  provider: SqlServer
+  connectionString: Data Source=SQL1;Initial Catalog=DEVL;Integrated Security=True
+  exclude:
+    ## Excludes meta data stored by EF Core migrations
+    - exact: 'dbo.SchemaVersions'
+  tableNaming: mixed
+data:
+  context:
+    name: '{Database.Name}Context'
+    namespace: '{Project.Namespace}.Data'
+    directory: '{Project.Directory}\Data'
+    document: true
+  entity:
+    namespace: '{Project.Namespace}.Data.Entities'
+    directory: '{Project.Directory}\Data\Entities'
+    document: true
+    entityNaming: singular
+  mapping:
+    namespace: '{Project.Namespace}.Data.Mapping'
+    directory: '{Project.Directory}\Data\Mapping'
+    document: true
+  query:
+    generate: true
+    indexPrefix: By
+    uniquePrefix: GetBy
+    namespace: '{Project.Namespace}.Data.Queries'
+    directory: '{Project.Directory}\Data\Queries'
+    document: true
+model:
+  shared:
+    namespace: '{Project.Namespace}.Domain.Models'
+    directory: '{Project.Directory}\Domain\{Entity.Name}\Models'
+    #exclude:
+    #  properties:
+    #    - '\.Id$'
+    #    - '\.Created$'
+    #    - '\.CreatedBy$'
+    #    - '\.Updated$'
+    #    - '\.UpdatedBy$'
+    #    - '\.RowVersion$'
+    #    - 'User\.PasswordHash$'
+    #    - 'User\.ResetHash$'
+    #    - 'User\.InviteHash$'
+  read:
+    generate: false #true
+    name: '{Entity.Name}ReadModel'
+    baseClass: EntityReadModel
+    document: true
+  create:
+    generate: false #true
+    name: '{Entity.Name}CreateModel'
+    baseClass: EntityCreateModel
+    document: true
+    exclude:
+      entities:
+        - 'UserLogin'
+  update:
+    generate: false #true
+    name: '{Entity.Name}UpdateModel'
+    baseClass: EntityUpdateModel
+    document: true
+    exclude:
+      entities:
+        - 'UserLogin'
+  mapper:
+    generate: true
+    name: '{Entity.Name}Profile'
+    baseClass: Profile
+    namespace: '{Project.Namespace}.Domain.Mapping'
+    directory: '{Project.Directory}\Domain\{Entity.Name}\Mapping'
+    document: true
+  validator:
+    generate: true
+    name: '{Model.Name}Validator'
+    baseClass: 'AbstractValidator<{Model.Name}>'
+    namespace: '{Project.Namespace}.Domain.Validation'
+    directory: '{Project.Directory}\Domain\{Entity.Name}\Validation'
+    document: true

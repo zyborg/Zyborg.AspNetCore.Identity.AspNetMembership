@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "conjure.efx.dotnettool": {
+      "version": "0.2.6.1",
+      "commands": [
+        "efx"
+      ]
+    }
+  }
+}
