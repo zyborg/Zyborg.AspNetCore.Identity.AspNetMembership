@@ -170,7 +170,7 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
         throw new NotImplementedException("the read-only user store does not support write operations");
     }
 
-    public Task<string> GetPasswordHashAsync(MembershipUser user, CancellationToken cancellationToken)
+    public Task<string?> GetPasswordHashAsync(MembershipUser user, CancellationToken cancellationToken)
     {
         return Task.FromResult(user.PasswordHash);
     }
