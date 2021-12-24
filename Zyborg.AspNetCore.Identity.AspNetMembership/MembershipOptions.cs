@@ -5,6 +5,8 @@ namespace Zyborg.AspNetCore.Identity.AspNetMembership;
 
 public class MembershipOptions
 {
+    public string? ConnectionString { get; set; }
+
     public string? ApplicationName { get; set; }
 
     public string? LoweredApplicationName => ApplicationName?.ToLower();
