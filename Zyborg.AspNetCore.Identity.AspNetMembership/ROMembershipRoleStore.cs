@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Zyborg.AspNetCore.Identity.AspNetMembership.Membership.Data;
+using Zyborg.AspNetCore.Identity.AspNetMembership.Membership.Data.Entities;
 
 namespace Zyborg.AspNetCore.Identity.AspNetMembership;
 
@@ -23,6 +24,15 @@ public class ROMembershipRoleStore : IRoleStore<MembershipRole>
 
     public void Dispose()
     {
+        _db.Dispose();
+    }
+
+    private MembershipRole Convert(AspnetRole dbRole)
+    {
+        return new MembershipRole(dbRole.RoleId, dbRole.RoleName)
+        {
+            Description = dbRole.Description,
+        };
     }
 
     public Task<IdentityResult> CreateAsync(MembershipRole role, CancellationToken cancellationToken)
@@ -51,7 +61,7 @@ public class ROMembershipRoleStore : IRoleStore<MembershipRole>
 #pragma warning restore CS8603 // Possible null reference return.
         }
 
-        return new MembershipRole(dbRole.RoleId, dbRole.RoleName);
+        return Convert(dbRole);
     }
 
     public async Task<MembershipRole> FindByNameAsync(string normalizedRoleName, CancellationToken cancellationToken)
@@ -72,7 +82,7 @@ public class ROMembershipRoleStore : IRoleStore<MembershipRole>
 #pragma warning restore CS8603 // Possible null reference return.
         }
 
-        return new MembershipRole(dbRole.RoleId, dbRole.RoleName);
+        return Convert(dbRole);
     }
 
     public Task<string> GetNormalizedRoleNameAsync(MembershipRole role, CancellationToken cancellationToken)

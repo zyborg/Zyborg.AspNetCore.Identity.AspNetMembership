@@ -14,4 +14,6 @@ public class MembershipRole
     public Guid RoleId { get; }
 
     public string RoleName { get; }
+
+    public string? Description { get; set; }
 }
