@@ -11,7 +11,8 @@ namespace Zyborg.AspNetCore.Identity.AspNetMembership;
 /// <summary>
 /// Implements a read-only Identity UserStore over an ASP.NET Membership data store.
 /// </summary>
-public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
+public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>,
+    IUserRoleStore<MembershipUser>
 {
     private readonly AspNetMembershipContext _db;
     private readonly MembershipOptions _options;
@@ -24,6 +25,28 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
 
     public void Dispose()
     {
+        _db.Dispose();
+    }
+
+    private MembershipUser Convert(AspnetUser dbUser, AspnetMembership dbMemb)
+    {
+        var passwordHash = $"{dbMemb!.PasswordSalt}:{dbMemb.Password}";
+
+        return new MembershipUser(dbUser.UserId, dbUser.UserName)
+        {
+            PasswordHash = passwordHash,
+            Email = dbMemb.Email,
+            LastActivityDate = dbUser.LastActivityDate,
+            IsApproved = dbMemb.IsApproved,
+            IsLockedOut = dbMemb.IsLockedOut,
+            CreateDate = dbMemb.CreateDate,
+            LastLoginDate = dbMemb.LastLoginDate,
+            LastPasswordChangedDate = dbMemb.LastPasswordChangedDate,
+            LastLockoutDate = dbMemb.LastLockoutDate,
+            FailedPasswordAttemptCount = dbMemb.FailedPasswordAttemptCount,
+            FailedPasswordAttemptWindowStart = dbMemb.FailedPasswordAttemptWindowStart,
+            Comment = dbMemb.Comment,
+        };
     }
 
     public Task<IdentityResult> CreateAsync(MembershipUser user, CancellationToken cancellationToken)
@@ -82,12 +105,18 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
     public async Task<MembershipUser> FindByIdAsync(string userId, CancellationToken cancellationToken)
     {
         var guid = Guid.Parse(userId);
+
         var app = _options.ApplicationName == null
-            ? await _db.AspnetApplications.FirstOrDefaultAsync()
-            : await _db.AspnetApplications.FirstOrDefaultAsync(x => x.LoweredApplicationName == _options.LoweredApplicationName);
+            ? await _db.AspnetApplications.FirstOrDefaultAsync(
+                cancellationToken: cancellationToken)
+            : await _db.AspnetApplications.FirstOrDefaultAsync(
+                x => x.LoweredApplicationName == _options.LoweredApplicationName,
+                cancellationToken: cancellationToken);
+
         var dbUser = await _db.AspnetUsers
             .Include(x => x.AspnetMembership)
-            .FirstOrDefaultAsync(x => x.AspnetApplication == app && x.UserId == guid);
+            .FirstOrDefaultAsync(x => x.AspnetApplication == app && x.UserId == guid,
+                cancellationToken: cancellationToken);
 
         if (dbUser == null)
         {
@@ -96,14 +125,7 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
 #pragma warning restore CS8603 // Possible null reference return.
         }
 
-        var memb = dbUser.AspnetMembership;
-        var passwordHash = $"{memb!.PasswordSalt}:{memb.Password}";
-
-        return new MembershipUser(dbUser.UserId, dbUser.UserName)
-        {
-            PasswordHash = passwordHash,
-            Email = memb.Email,
-        };
+        return Convert(dbUser, dbUser.AspnetMembership);
     }
 
     public async Task<MembershipUser> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken)
@@ -112,11 +134,16 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
         normalizedUserName = normalizedUserName.ToLower();
 
         var app = _options.ApplicationName == null
-            ? await _db.AspnetApplications.FirstOrDefaultAsync()
-            : await _db.AspnetApplications.FirstOrDefaultAsync(x => x.LoweredApplicationName == _options.LoweredApplicationName);
+            ? await _db.AspnetApplications.FirstOrDefaultAsync(
+                cancellationToken: cancellationToken)
+            : await _db.AspnetApplications.FirstOrDefaultAsync(
+                x => x.LoweredApplicationName == _options.LoweredApplicationName,
+                cancellationToken: cancellationToken);
+
         var dbUser = await _db.AspnetUsers
             .Include(x => x.AspnetMembership)
-            .FirstOrDefaultAsync(x => x.AspnetApplication == app && x.LoweredUserName == normalizedUserName);
+            .FirstOrDefaultAsync(x => x.AspnetApplication == app && x.LoweredUserName == normalizedUserName,
+                cancellationToken: cancellationToken);
 
         if (dbUser == null)
         {
@@ -178,5 +205,58 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>
     public Task<bool> HasPasswordAsync(MembershipUser user, CancellationToken cancellationToken)
     {
         return Task.FromResult(!string.IsNullOrEmpty(user.PasswordHash));
+    }
+
+    Task IUserRoleStore<MembershipUser>.AddToRoleAsync(MembershipUser user, string roleName, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException("the read-only user store does not support write operations");
+    }
+
+    Task IUserRoleStore<MembershipUser>.RemoveFromRoleAsync(MembershipUser user, string roleName, CancellationToken cancellationToken)
+    {
+        throw new NotImplementedException("the read-only user store does not support write operations");
+    }
+
+    async Task<IList<string>> IUserRoleStore<MembershipUser>.GetRolesAsync(MembershipUser user, CancellationToken cancellationToken)
+    {
+        return await _db.AspnetUsersInRoles
+            .Include(x => x.AspnetRole)
+            .Where(x => x.UserId == user.UserId)
+            .Select(x => x.AspnetRole!.RoleName)
+            .ToListAsync();
+    }
+
+    async Task<bool> IUserRoleStore<MembershipUser>.IsInRoleAsync(MembershipUser user, string roleName, CancellationToken cancellationToken)
+    {
+        return await _db.AspnetUsersInRoles
+            .Include(x => x.AspnetRole)
+            .Where(x => x.UserId == user.UserId && x.AspnetRole!.RoleName == roleName)
+            .AnyAsync();
+    }
+
+    async Task<IList<MembershipUser>> IUserRoleStore<MembershipUser>.GetUsersInRoleAsync(string roleName, CancellationToken cancellationToken)
+    {
+        var dbUsers = await _db.AspnetUsersInRoles
+            .Include(x => x.AspnetUser)
+                .ThenInclude(x => x.AspnetMembership)
+            .Include(x => x.AspnetRole)
+            .Where(x => x.AspnetRole!.RoleName == roleName)
+            .Select(x => x.AspnetUser)
+            .ToListAsync(cancellationToken: cancellationToken);
+
+        var list = new List<MembershipUser>();
+        foreach (var dbUser in dbUsers)
+        {
+            var memb = dbUser!.AspnetMembership;
+            var passwordHash = $"{memb!.PasswordSalt}:{memb.Password}";
+
+            list.Add(new(dbUser.UserId, dbUser.UserName)
+            {
+                PasswordHash = passwordHash,
+                Email = memb.Email,
+            });
+        }
+
+        return list;
     }
 }
