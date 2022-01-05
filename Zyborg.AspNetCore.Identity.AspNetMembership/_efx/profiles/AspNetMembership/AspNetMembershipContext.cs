@@ -14,7 +14,9 @@ namespace Zyborg.AspNetCore.Identity.AspNetMembership.Membership.Data
     public partial class AspNetMembershipContext : DbContext
     {
         private const string DesignTimeProvider = "SqlServer";
-        private const string DesignTimeConnectionString = "Data Source=DEV-SQL1;Initial Catalog=DEVL_PartPortal;Integrated Security=True";
+        private const string DesignTimeConnectionString = "";
+        private const string DesignTimeConnectionName = "AspNetMembership";
+        private const string DesignTimeUserSecretsId = "Zyborg.AspNetCore.Identity.AspNetMembership";
 
 
         /// <summary>
@@ -146,9 +148,20 @@ namespace Zyborg.AspNetCore.Identity.AspNetMembership.Membership.Data
             base.OnConfiguring(optionsBuilder);
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlServer(DesignTimeConnectionString);
+                var connString = DesignTimeConnectionString;
+                if (string.IsNullOrWhiteSpace(connString))
+                {
+                    // We don't have the design-time connection string
+                    // but we might have design-time user secrets info,
+                    // which can be used as an opportunity to resolve
+                    ResolveUserSecretsConnectionString(DesignTimeUserSecretsId, DesignTimeConnectionName, ref connString);
+                }
+
+                optionsBuilder.UseSqlServer(connString);
             }
         }
+
+        partial void ResolveUserSecretsConnectionString(string userSecretsId, string connName, ref string connString);
 
         /// <summary>
         /// Configure the model that was discovered from the entity types exposed in <see cref="T:Microsoft.EntityFrameworkCore.DbSet`1" /> properties on this context.

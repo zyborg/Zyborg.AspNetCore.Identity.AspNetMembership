@@ -23,6 +23,8 @@ namespace {{EntityContext.ContextNamespace}}
     {
         private const string DesignTimeProvider = "{{Options.Database.Provider | string.escape}}";
         private const string DesignTimeConnectionString = "{{Options.Database.ConnectionString | string.escape}}";
+        private const string DesignTimeConnectionName = "{{Options.Database.ConnectionName | string.escape}}";
+        private const string DesignTimeUserSecretsId = "{{Options.Database.UserSecretsId | string.escape}}";
 
         {{~if Options.Data.Context.Document}}
         /// <summary>
@@ -62,11 +64,22 @@ namespace {{EntityContext.ContextNamespace}}
             base.OnConfiguring(optionsBuilder);
             if (!optionsBuilder.IsConfigured)
             {
+                var connString = DesignTimeConnectionString;
+                if (string.IsNullOrWhiteSpace(connString))
+                {
+                    // We don't have the design-time connection string
+                    // but we might have design-time user secrets info,
+                    // which can be used as an opportunity to resolve
+                    ResolveUserSecretsConnectionString(DesignTimeUserSecretsId, DesignTimeConnectionName, ref connString);
+                }
+
                 {{~if Options.Database.Provider == "SqlServer"~}}
-                optionsBuilder.UseSqlServer(DesignTimeConnectionString);
+                optionsBuilder.UseSqlServer(connString);
                 {{~end~}}
             }
         }
+
+        partial void ResolveUserSecretsConnectionString(string userSecretsId, string connName, ref string connString);
 
         {{~## GenerateOnConfiguring(); ##~}}
         {{~if Options.Data.Context.Document~}}

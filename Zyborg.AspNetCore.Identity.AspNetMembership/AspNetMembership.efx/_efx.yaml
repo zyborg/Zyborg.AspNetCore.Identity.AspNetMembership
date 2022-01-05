@@ -6,7 +6,9 @@ project:
 database:
   name: AspNetMembership
   provider: SqlServer
-  connectionString: Data Source=SQL1;Initial Catalog=DEVL;Integrated Security=True
+  #connectionString: Data Source=SQL1;Initial Catalog=DEVL;Integrated Security=True
+  userSecretsId:  Zyborg.AspNetCore.Identity.AspNetMembership
+  connectionName: AspNetMembership
   exclude:
     ## Excludes meta data stored by EF Core migrations
     - exact: 'dbo.SchemaVersions'
