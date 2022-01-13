@@ -28,9 +28,17 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>,
         _db.Dispose();
     }
 
-    private MembershipUser Convert(AspnetUser dbUser, AspnetMembership dbMemb)
+    private MembershipUser Convert(AspnetUser dbUser, AspnetMembership? dbMemb)
     {
-        var passwordHash = $"{dbMemb!.PasswordSalt}:{dbMemb.Password}";
+        if (dbMemb == null)
+        {
+            return new MembershipUser(dbUser.UserId, dbUser.UserName)
+            {
+                LastActivityDate = dbUser.LastActivityDate,
+            };
+        }
+
+        var passwordHash = $"{dbMemb.PasswordSalt}:{dbMemb.Password}";
 
         return new MembershipUser(dbUser.UserId, dbUser.UserName)
         {
@@ -238,7 +246,7 @@ public class ROMembershipUserStore : IUserPasswordStore<MembershipUser>,
     {
         var dbUsers = await _db.AspnetUsersInRoles
             .Include(x => x.AspnetUser)
-                .ThenInclude(x => x.AspnetMembership)
+                .ThenInclude(x => x!.AspnetMembership)
             .Include(x => x.AspnetRole)
             .Where(x => x.AspnetRole!.RoleName == roleName)
             .Select(x => x.AspnetUser)
